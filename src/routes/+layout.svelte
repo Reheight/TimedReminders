@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import PinScreen from '$lib/components/PinScreen.svelte';
 	import { untrack } from 'svelte';
+	import { page } from '$app/state';
 
 	let { children, data } = $props();
 
@@ -23,5 +24,7 @@
 {#if data.isSetup && !authenticated}
 	<PinScreen appName={data.appName ?? 'Rotation Tracker'} onSuccess={onAuthenticated} />
 {:else}
-	{@render children()}
+	{#key page.url.pathname}
+		{@render children()}
+	{/key}
 {/if}

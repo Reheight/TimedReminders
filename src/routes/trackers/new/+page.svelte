@@ -52,7 +52,7 @@
 				})
 			});
 			if (res.ok) {
-				await goto('/');
+				await goto(resolve('/'));
 			} else {
 				const d = await res.json();
 				error = d.error ?? 'Failed to create tracker.';
