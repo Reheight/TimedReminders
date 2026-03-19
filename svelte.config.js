@@ -15,7 +15,7 @@ const config = {
 			trustedOrigins: ['*']
 		},
 		alias: {
-			'$prisma': './node_modules/@prisma/client'
+			$prisma: './node_modules/@prisma/client'
 		}
 	}
 };
