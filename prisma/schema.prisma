@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── App configuration (PIN hash, app name, session duration, etc.) ──────────
+model InternalConfigurationValue {
+  id              String          @id @default(cuid())
+  key             String          @unique
+  value           String          @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  adminOnly       Boolean         @default(true)
+  defaultValue    String?
+  description     String?         @db.Text
+  displayName     String?
+  lastModifiedBy  String?
+  maxValue        Float?
+  minValue        Float?
+  requiresRestart Boolean         @default(false)
+  scope           ConfigScope     @default(SYSTEM)
+  validationRegex String?
+  valueType       ConfigValueType @default(STRING)
+
+  @@index([adminOnly])
+  @@index([scope, key])
+}
+
+// ─── Sessions (created after successful PIN entry) ────────────────────────────
+model Session {
+  id        String   @id @default(cuid())
+  // Stores SHA-256(rawToken) so a DB breach cannot replay sessions
+  tokenHash String   @unique @db.VarChar(64)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+// ─── PIN rate-limiting (per-IP failed attempt tracking) ───────────────────────
+model PinAttempt {
+  id          String    @id @default(cuid())
+  ip          String    @unique @db.VarChar(45)
+  attempts    Int       @default(0)
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([ip])
+}
+
+// ─── Rotation trackers ────────────────────────────────────────────────────────
+model RotationTracker {
+  id          String          @id @default(cuid())
+  name        String          @db.VarChar(100)
+  description String?         @db.Text
+  onWeeks     Int             @default(3)
+  offWeeks    Int             @default(3)
+  startDate   DateTime        // stored as midnight UTC
+  startPhase  CyclePhase      @default(ON)
+  isActive    Boolean         @default(true)
+  color       String          @default("#8B5CF6") @db.VarChar(7)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  cycles      RotationCycle[]
+}
+
+// ─── Individual ON or OFF phase periods ──────────────────────────────────────
+model RotationCycle {
+  id          String          @id @default(cuid())
+  trackerId   String
+  tracker     RotationTracker @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  phaseIndex  Int             // sequential 0-based phase index (0=first phase, 1=second …)
+  phase       CyclePhase
+  startDate   DateTime
+  endDate     DateTime
+  isCompleted Boolean         @default(false)
+  completedAt DateTime?
+  notes       String?         @db.Text
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  checkIns    CycleCheckIn[]
+
+  @@unique([trackerId, phaseIndex])
+  @@index([trackerId])
+  @@index([startDate, endDate])
+}
+
+// ─── Daily check-ins during a cycle ──────────────────────────────────────────
+model CycleCheckIn {
+  id        String        @id @default(cuid())
+  cycleId   String
+  cycle     RotationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date  // stored as YYYY-MM-DD
+  notes     String?       @db.Text
+  createdAt DateTime      @default(now())
+
+  @@unique([cycleId, date])
+  @@index([cycleId])
+  @@index([date])
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+enum CyclePhase {
+  ON
+  OFF
+}
+
+enum ConfigScope {
+  SYSTEM
+  SECURITY
+  OAUTH
+  TWO_FACTOR
+  EMAIL
+  CDN
+  FEATURES
+  LIMITS
+  BRANDING
+  SHOP
+}
+
+enum ConfigValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+  SECRET
+}
