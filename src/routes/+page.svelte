@@ -59,7 +59,7 @@
 					<h2 class="text-lg font-semibold text-white">No trackers yet</h2>
 					<p class="mt-1 text-sm text-white/50">Add a rotation tracker to get started.</p>
 				</div>
-				<a href={resolve('/settings')} class="rounded-xl bg-fuchsia-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600">
+				<a href={resolve('/trackers/new')} class="rounded-xl bg-fuchsia-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600">
 					Add tracker
 				</a>
 			</div>
@@ -74,7 +74,7 @@
 			<!-- Add tracker button -->
 			<div class="mt-6">
 				<a
-					href={resolve('/settings') + '#add-tracker'}
+					href={resolve('/trackers/new')}
 					class="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/15 py-4 text-sm font-semibold text-white/40 transition hover:border-fuchsia-400/40 hover:text-fuchsia-400"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -143,6 +143,10 @@
 				<h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/40">Indicators</h2>
 				<div class="space-y-2 text-sm text-white/60">
 					<div class="flex items-center gap-3">
+						<div class="h-3 w-3 shrink-0 rounded-full bg-current" style="color: #8B5CF6; background: #8B5CF6"></div>
+						<span>Tracker color identifier</span>
+					</div>
+					<div class="flex items-center gap-3">
 						<span class="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-400">ON</span>
 						<span>Active / working phase</span>
 					</div>
@@ -163,7 +167,7 @@
 		{:else}
 			<div class="mt-8 flex flex-col items-center gap-3 text-center">
 				<p class="text-sm text-white/40">No trackers set up yet.</p>
-				<a href={resolve('/settings')} class="rounded-xl bg-fuchsia-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-fuchsia-600">
+				<a href={resolve('/trackers/new')} class="rounded-xl bg-fuchsia-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-fuchsia-600">
 					Add tracker
 				</a>
 			</div>
