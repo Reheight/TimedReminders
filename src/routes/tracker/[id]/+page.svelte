@@ -7,8 +7,14 @@
 	let { data } = $props();
 	type PhaseItem = PageData['phases'][number];
 
-	const { tracker, stats, todayISO } = untrack(() => data);
+	const tracker = $derived(data.tracker);
+	const stats = $derived(data.stats);
+	const todayISO = $derived(data.todayISO);
 	let phases = $state<PhaseItem[]>(untrack(() => data.phases));
+
+	$effect(() => {
+		phases = data.phases;
+	});
 
 	const currentPhase = $derived(phases.find((p) => p.isCurrent));
 	const pastPhases = $derived([...phases].filter((p) => p.isPast).reverse());
