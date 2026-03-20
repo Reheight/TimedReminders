@@ -53,7 +53,11 @@
 		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 	function fmtFull(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+		return new Date(iso).toLocaleDateString('en-US', {
+			month: 'long',
+			day: 'numeric',
+			year: 'numeric'
+		});
 	}
 
 	/** Build an array of date strings (YYYY-MM-DD) between two ISO dates inclusive */
@@ -73,8 +77,19 @@
 	<!-- Header -->
 	<header class="sticky top-0 z-10 border-b border-white/8 bg-black/30 backdrop-blur">
 		<div class="mx-auto flex max-w-lg items-center gap-3 px-4 py-4">
-			<a href={resolve('/')} aria-label="Back" class="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+			<a
+				href={resolve('/')}
+				aria-label="Back"
+				class="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-5 w-5"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+				>
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
 				</svg>
 			</a>
@@ -82,12 +97,13 @@
 				<div class="h-3 w-3 shrink-0 rounded-full" style="background:{tracker.color}"></div>
 				<h1 class="truncate text-base font-semibold text-white">{tracker.name}</h1>
 			</div>
-			<a href={resolve('/settings')} class="shrink-0 text-xs text-white/40 hover:text-white/70">Settings</a>
+			<a href={resolve('/settings')} class="shrink-0 text-xs text-white/40 hover:text-white/70"
+				>Settings</a
+			>
 		</div>
 	</header>
 
 	<main class="mx-auto max-w-lg space-y-5 px-4 py-6">
-
 		<!-- Current phase hero -->
 		{#if currentPhase}
 			<div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
@@ -100,13 +116,20 @@
 							color={currentPhase.phase === 'ON' ? '#10b981' : '#64748b'}
 							trackColor="rgba(255,255,255,0.08)"
 						/>
-						<span class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
+						<span
+							class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-white"
+						>
 							{currentPhase.progressPercent ?? 0}%
 						</span>
 					</div>
 					<div class="min-w-0 flex-1">
 						<div class="mb-1 flex items-center gap-2">
-							<span class="rounded-full px-3 py-0.5 text-xs font-bold uppercase {currentPhase.phase === 'ON' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}">
+							<span
+								class="rounded-full px-3 py-0.5 text-xs font-bold uppercase {currentPhase.phase ===
+								'ON'
+									? 'bg-emerald-500/20 text-emerald-400'
+									: 'bg-slate-500/20 text-slate-400'}"
+							>
 								{currentPhase.phase}
 							</span>
 						</div>
@@ -114,7 +137,8 @@
 							Day {currentPhase.dayInPhase} of {currentPhase.totalDays}
 						</p>
 						<p class="text-sm text-white/60">
-							{currentPhase.daysRemaining} {currentPhase.daysRemaining === 1 ? 'day' : 'days'} remaining
+							{currentPhase.daysRemaining}
+							{currentPhase.daysRemaining === 1 ? 'day' : 'days'} remaining
 						</p>
 						<p class="mt-1 text-xs text-white/40">
 							{fmt(currentPhase.startDate)} – {fmt(currentPhase.endDate)}
@@ -125,7 +149,9 @@
 				{#if currentPhase.phase === 'ON'}
 					<button
 						onclick={() => toggleCheckin(currentPhase.phaseIndex, todayISO)}
-						class="mt-5 w-full rounded-xl py-3 text-sm font-bold transition active:scale-95 {currentPhase.hasCheckedInToday ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-emerald-500 text-white hover:bg-emerald-600'}"
+						class="mt-5 w-full rounded-xl py-3 text-sm font-bold transition active:scale-95 {currentPhase.hasCheckedInToday
+							? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+							: 'bg-emerald-500 text-white hover:bg-emerald-600'}"
 					>
 						{currentPhase.hasCheckedInToday ? '✓ Checked in today' : 'Check in for today'}
 					</button>
@@ -139,11 +165,7 @@
 
 		<!-- Stats row -->
 		<div class="grid grid-cols-3 gap-3">
-			{#each [
-				{ label: 'Completion', value: stats.completionRate + '%', sub: stats.completedOnPhases + '/' + stats.totalOnPhases + ' ON phases' },
-				{ label: 'Streak', value: stats.currentStreak + '', sub: 'current streak' },
-				{ label: 'Check-ins', value: stats.totalCheckIns + '', sub: 'total days' }
-		] as card (card.label)}
+			{#each [{ label: 'Completion', value: stats.completionRate + '%', sub: stats.completedOnPhases + '/' + stats.totalOnPhases + ' ON phases' }, { label: 'Streak', value: stats.currentStreak + '', sub: 'current streak' }, { label: 'Check-ins', value: stats.totalCheckIns + '', sub: 'total days' }] as card (card.label)}
 				<div class="rounded-xl border border-white/8 bg-white/4 px-3 py-4 text-center">
 					<p class="text-xl font-bold text-white">{card.value}</p>
 					<p class="mt-0.5 text-xs font-semibold text-white/50">{card.label}</p>
@@ -154,7 +176,7 @@
 
 		<!-- Rotation schedule info -->
 		<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-			<h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/50">Schedule</h2>
+			<h2 class="mb-3 text-xs font-bold tracking-wider text-white/50 uppercase">Schedule</h2>
 			<div class="grid grid-cols-3 gap-3 text-center">
 				<div>
 					<p class="text-lg font-bold text-emerald-400">{tracker.onWeeks}w</p>
@@ -175,9 +197,14 @@
 
 		<!-- Current phase calendar (ON only) -->
 		{#if currentPhase && currentPhase.phase === 'ON'}
-			{@const dates = dateRange(currentPhase.startDate.slice(0,10), currentPhase.endDate.slice(0,10))}
+			{@const dates = dateRange(
+				currentPhase.startDate.slice(0, 10),
+				currentPhase.endDate.slice(0, 10)
+			)}
 			<div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-				<h2 class="mb-4 text-xs font-bold uppercase tracking-wider text-white/50">Current phase — check-ins</h2>
+				<h2 class="mb-4 text-xs font-bold tracking-wider text-white/50 uppercase">
+					Current phase — check-ins
+				</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each dates as d (d)}
 						{@const isToday = d === todayISO}
@@ -187,10 +214,18 @@
 						<button
 							onclick={() => !isFuture && toggleCheckin(currentPhase.phaseIndex, d)}
 							disabled={isFuture}
-							title={new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+							title={new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', {
+								weekday: 'short',
+								month: 'short',
+								day: 'numeric'
+							})}
 							class="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-xs font-semibold transition
 								{isToday ? 'ring-2 ring-white' : ''}
-								{checkedIn ? 'bg-emerald-500 text-white' : isFuture ? 'bg-white/5 text-white/20' : 'bg-white/10 text-white/60 hover:bg-white/20'}"
+								{checkedIn
+								? 'bg-emerald-500 text-white'
+								: isFuture
+									? 'bg-white/5 text-white/20'
+									: 'bg-white/10 text-white/60 hover:bg-white/20'}"
 						>
 							<span class="text-xs">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
 							<span>{day.getUTCDate()}</span>
@@ -206,19 +241,29 @@
 		<!-- Phase history -->
 		{#if pastPhases.length > 0}
 			<div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-				<h2 class="mb-4 text-xs font-bold uppercase tracking-wider text-white/50">History</h2>
+				<h2 class="mb-4 text-xs font-bold tracking-wider text-white/50 uppercase">History</h2>
 				<div class="space-y-3">
 					{#each pastPhases as p (p.phaseIndex)}
 						<div class="rounded-xl bg-white/5 px-4 py-3">
 							<div class="flex items-center justify-between gap-3">
 								<div class="flex items-center gap-2.5">
-									<span class="rounded-md px-2 py-0.5 text-xs font-bold {p.phase === 'ON' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-500/15 text-slate-400'}">
+									<span
+										class="rounded-md px-2 py-0.5 text-xs font-bold {p.phase === 'ON'
+											? 'bg-emerald-500/15 text-emerald-400'
+											: 'bg-slate-500/15 text-slate-400'}"
+									>
 										{p.phase}
 									</span>
 									<span class="text-sm text-white/70">{fmt(p.startDate)} – {fmt(p.endDate)}</span>
 								</div>
 								{#if p.phase === 'ON'}
-									<span class="text-sm font-semibold {p.completionPercent >= 80 ? 'text-emerald-400' : p.completionPercent >= 50 ? 'text-yellow-400' : 'text-red-400'}">
+									<span
+										class="text-sm font-semibold {p.completionPercent >= 80
+											? 'text-emerald-400'
+											: p.completionPercent >= 50
+												? 'text-yellow-400'
+												: 'text-red-400'}"
+									>
 										{p.completionPercent}%
 									</span>
 								{:else}
@@ -228,7 +273,11 @@
 							{#if p.phase === 'ON'}
 								<div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/8">
 									<div
-										class="h-full rounded-full {p.completionPercent >= 80 ? 'bg-emerald-500' : p.completionPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'}"
+										class="h-full rounded-full {p.completionPercent >= 80
+											? 'bg-emerald-500'
+											: p.completionPercent >= 50
+												? 'bg-yellow-500'
+												: 'bg-red-500'}"
 										style="width:{p.completionPercent}%"
 									></div>
 								</div>
