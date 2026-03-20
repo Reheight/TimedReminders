@@ -51,10 +51,10 @@
 	}
 
 	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 	function fmtFull(iso: string) {
-		return new Date(iso).toLocaleDateString('en-US', {
+		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', {
 			month: 'long',
 			day: 'numeric',
 			year: 'numeric'
@@ -192,7 +192,7 @@
 				</div>
 			</div>
 			<p class="mt-3 text-center text-xs text-white/30">
-				Started {fmtFull(tracker.startDate + 'T00:00:00Z')} · first phase: {tracker.startPhase}
+				Started {fmtFull(tracker.startDate)} · first phase: {tracker.startPhase}
 			</p>
 		</div>
 
