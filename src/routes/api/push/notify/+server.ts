@@ -25,24 +25,30 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	}
 
-	// ── Time window check ───────────────────────────────────────────────────────
-	const notifyHour = await getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9);
-	const now = new Date();
-	const currentHour = now.getUTCHours();
-	if (currentHour !== notifyHour) {
-		return json({ skipped: 'outside notification window' });
+	const payload = await request.json().catch(() => ({}));
+	const force = payload?.force === true;
+
+	// ── Time window check (skipped when force=true) ─────────────────────────────
+	if (!force) {
+		const notifyHour = await getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9);
+		const now = new Date();
+		const currentHour = now.getUTCHours();
+		if (currentHour !== notifyHour) {
+			return json({ skipped: 'outside notification window' });
+		}
 	}
 
-	// ── Optimistic lock via unique INSERT ───────────────────────────────────────
-	// localTodayMidnightUTC uses local wall-clock date, same as getHours() above
+	// ── Optimistic lock via unique INSERT (skipped when force=true) ─────────────
 	const today = localTodayMidnightUTC();
 	const todayStr = today.toISOString().slice(0, 10);
 
-	try {
-		await prisma.pushNotificationLog.create({ data: { date: todayStr } });
-	} catch {
-		// Unique constraint violation = another process already claimed today
-		return json({ skipped: 'already sent today' });
+	if (!force) {
+		try {
+			await prisma.pushNotificationLog.create({ data: { date: todayStr } });
+		} catch {
+			// Unique constraint violation = another process already claimed today
+			return json({ skipped: 'already sent today' });
+		}
 	}
 
 	// ── Find trackers that need a reminder ───────────────────────────────────────
@@ -65,8 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	if (needsCheckin.length === 0) {
-		// Update log record to reflect nothing needed sending
-		await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
+		if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
 		return json({ sent: 0, message: 'All checked in already' });
 	}
 
@@ -78,7 +83,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	// ── Send to all subscriptions ────────────────────────────────────────────────
 	const subscriptions = await prisma.pushSubscription.findMany();
 	if (subscriptions.length === 0) {
-		await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
+		if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
 		return json({ sent: 0, message: 'No subscriptions' });
 	}
 
@@ -102,7 +107,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	);
 
 	// Update log with actual send count
-	await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: sent } });
+	if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: sent } });
 
 	// Clean up expired subscriptions
 	if (expiredIds.length > 0) {
