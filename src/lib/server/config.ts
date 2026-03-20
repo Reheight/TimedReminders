@@ -8,7 +8,11 @@ export const CONFIG_KEYS = {
 	PIN_LENGTH: 'app.pinLength',
 	APP_NAME: 'app.appName',
 	SESSION_DURATION_HOURS: 'app.sessionDurationHours',
-	LOCK_ON_CLOSE: 'app.lockOnClose'
+	LOCK_ON_CLOSE: 'app.lockOnClose',
+	VAPID_PUBLIC_KEY: 'push.vapidPublicKey',
+	VAPID_PRIVATE_KEY: 'push.vapidPrivateKey',
+	VAPID_SUBJECT: 'push.vapidSubject',
+	CRON_SECRET: 'push.cronSecret'
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];

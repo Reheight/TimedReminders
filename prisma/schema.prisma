@@ -110,6 +110,19 @@ model CycleCheckIn {
   @@index([date])
 }
 
+// ─── Push notification subscriptions ─────────────────────────────────────────
+model PushSubscription {
+  id          String   @id @default(cuid())
+  endpoint    String   @unique @db.VarChar(2048)
+  p256dhKey   String   @db.Text
+  authKey     String   @db.Text
+  userAgent   String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 enum CyclePhase {
   ON

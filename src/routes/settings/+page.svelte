@@ -214,6 +214,179 @@
 	}
 
 	const curPinDisplay = $derived(pinStep === 'set' ? newPin : confirmPin);
+
+	// ── Push notification config ────────────────────────────────────────────────
+	let pushPublicKey = $state(untrack(() => data.vapidPublicKey));
+	let pushPrivateKey = $state('');
+	let pushSubject = $state(untrack(() => data.vapidSubject));
+	let pushCronSecret = $state('');
+	let savingPush = $state(false);
+	let pushSaved = $state(false);
+	let pushError = $state('');
+
+	async function savePushSettings() {
+		pushError = '';
+		savingPush = true;
+		pushSaved = false;
+		try {
+			const res = await fetch('/api/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					vapidPublicKey: pushPublicKey,
+					vapidPrivateKey: pushPrivateKey || undefined,
+					vapidSubject: pushSubject,
+					cronSecret: pushCronSecret || undefined
+				})
+			});
+			if (res.ok) {
+				pushSaved = true;
+				pushPrivateKey = '';
+				pushCronSecret = '';
+				setTimeout(() => (pushSaved = false), 2500);
+			} else {
+				const d = await res.json();
+				pushError = d.error ?? 'Failed to save.';
+			}
+		} catch {
+			pushError = 'Network error.';
+		} finally {
+			savingPush = false;
+		}
+	}
+
+	// ── Notifications / PWA ──────────────────────────────────────────────────────
+	let notifStatus = $state<'unknown' | 'unsupported' | 'denied' | 'granted' | 'subscribed'>('unknown');
+	let notifLoading = $state(false);
+	let notifError = $state('');
+	let deferredInstallPrompt = $state<Event | null>(null);
+	let showInstallBanner = $state(false);
+
+	// Track whether we're in standalone (already installed)
+	const isStandalone = $derived(
+		typeof window !== 'undefined' &&
+			(window.matchMedia('(display-mode: standalone)').matches ||
+				(navigator as { standalone?: boolean }).standalone === true)
+	);
+
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+
+		// Capture the beforeinstallprompt event for Android Chrome
+		const onInstall = (e: Event) => {
+			e.preventDefault();
+			deferredInstallPrompt = e;
+			showInstallBanner = true;
+		};
+		window.addEventListener('beforeinstallprompt', onInstall);
+
+		// Check current notification / subscription status
+		checkNotifStatus();
+
+		return () => window.removeEventListener('beforeinstallprompt', onInstall);
+	});
+
+	async function checkNotifStatus() {
+		if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+			notifStatus = 'unsupported';
+			return;
+		}
+		if (Notification.permission === 'denied') {
+			notifStatus = 'denied';
+			return;
+		}
+		if (Notification.permission === 'granted') {
+			// Check if actually subscribed
+			try {
+				const reg = await navigator.serviceWorker.ready;
+				const sub = await reg.pushManager.getSubscription();
+				notifStatus = sub ? 'subscribed' : 'granted';
+			} catch {
+				notifStatus = 'granted';
+			}
+			return;
+		}
+		notifStatus = 'unknown';
+	}
+
+	async function enableNotifications() {
+		notifError = '';
+		notifLoading = true;
+		try {
+			const permission = await Notification.requestPermission();
+			if (permission !== 'granted') {
+				notifStatus = 'denied';
+				notifError = 'Permission denied. Enable notifications in your browser settings.';
+				return;
+			}
+
+			// Get VAPID public key
+			const keyRes = await fetch('/api/push');
+			if (!keyRes.ok) throw new Error('Could not load push key');
+			const { publicKey } = await keyRes.json();
+			if (!publicKey) throw new Error('Push notifications not configured on server');
+
+			const reg = await navigator.serviceWorker.ready;
+			const sub = await reg.pushManager.subscribe({
+				userVisibleOnly: true,
+				applicationServerKey: urlBase64ToUint8Array(publicKey)
+			});
+
+			const subJson = sub.toJSON();
+			const res = await fetch('/api/push', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(subJson)
+			});
+			if (!res.ok) throw new Error('Failed to save subscription');
+
+			notifStatus = 'subscribed';
+		} catch (e) {
+			notifError = e instanceof Error ? e.message : 'Something went wrong';
+		} finally {
+			notifLoading = false;
+		}
+	}
+
+	async function disableNotifications() {
+		notifLoading = true;
+		try {
+			const reg = await navigator.serviceWorker.ready;
+			const sub = await reg.pushManager.getSubscription();
+			if (sub) {
+				await fetch('/api/push', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ endpoint: sub.endpoint })
+				});
+				await sub.unsubscribe();
+			}
+			notifStatus = 'granted';
+		} catch {
+			notifError = 'Failed to disable notifications';
+		} finally {
+			notifLoading = false;
+		}
+	}
+
+	async function triggerInstall() {
+		if (!deferredInstallPrompt) return;
+		// @ts-expect-error - beforeinstallprompt is not yet in TS types
+		await deferredInstallPrompt.prompt();
+		deferredInstallPrompt = null;
+		showInstallBanner = false;
+	}
+
+	/** Convert a base64url VAPID public key to a Uint8Array */
+	function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+		const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+		const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+		const rawData = atob(base64);
+		const buf = new ArrayBuffer(rawData.length);
+		const view = new Uint8Array(buf);
+		for (let i = 0; i < rawData.length; i++) view[i] = rawData.charCodeAt(i);
+		return buf;
+	}
 </script>
 
 <div class="min-h-screen bg-linear-to-br from-slate-950 via-violet-950 to-fuchsia-950">
@@ -571,6 +744,128 @@
 					</button>
 				</div>
 			{/if}
+		</section>
+
+		<!-- Push notification config -->
+		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
+			<h2 class="mb-4 text-sm font-bold tracking-wider text-white/50 uppercase">Push Notification Config</h2>
+			<p class="mb-4 text-xs text-white/40">
+				Generate VAPID keys with: <code class="rounded bg-white/10 px-1.5 py-0.5 text-white/60">node -e "const wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()))"</code>
+			</p>
+			<div class="space-y-3">
+				<div>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushSubject">VAPID Subject (mailto: or https:)</label>
+					<input
+						id="pushSubject"
+						type="text"
+						bind:value={pushSubject}
+						placeholder="mailto:you@example.com"
+						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
+					/>
+				</div>
+				<div>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPublicKey">VAPID Public Key</label>
+					<input
+						id="pushPublicKey"
+						type="text"
+						bind:value={pushPublicKey}
+						placeholder="Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/20 focus:border-fuchsia-400 focus:outline-none"
+					/>
+				</div>
+				<div>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPrivateKey">
+						VAPID Private Key {data.vapidPrivateKeySet ? '(currently set — leave blank to keep)' : ''}
+					</label>
+					<input
+						id="pushPrivateKey"
+						type="password"
+						autocomplete="off"
+						bind:value={pushPrivateKey}
+						placeholder={data.vapidPrivateKeySet ? '●●●●●●●● (configured)' : 'Enter private key'}
+						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
+					/>
+				</div>
+				<div>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="cronSecret">
+						Cron Secret {data.cronSecretSet ? '(currently set — leave blank to keep)' : ''}
+					</label>
+					<input
+						id="cronSecret"
+						type="password"
+						autocomplete="off"
+						bind:value={pushCronSecret}
+						placeholder={data.cronSecretSet ? '●●●●●●●● (configured)' : 'Set a secret for your cron job'}
+						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
+					/>
+					<p class="mt-1 text-xs text-white/30">Cron job must send: <code class="text-white/50">Authorization: Bearer &lt;secret&gt;</code> to <code class="text-white/50">POST /api/push/notify</code></p>
+				</div>
+			</div>
+			{#if pushError}<p class="mt-2 text-xs text-red-300">{pushError}</p>{/if}
+			<button
+				onclick={savePushSettings}
+				disabled={savingPush}
+				class="mt-4 w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
+			>
+				{savingPush ? 'Saving…' : pushSaved ? '✓ Saved' : 'Save push settings'}
+			</button>
+		</section>
+
+		<!-- Install to home screen -->
+		{#if showInstallBanner && !isStandalone}
+			<section class="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-5">
+				<h2 class="mb-1 text-sm font-bold tracking-wider text-white/50 uppercase">Install App</h2>
+				<p class="mb-4 text-sm text-white/60">Add to your home screen for the best experience and to enable push notifications.</p>
+				<button
+					onclick={triggerInstall}
+					class="w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95"
+				>
+					Add to Home Screen
+				</button>
+			</section>
+		{:else if !isStandalone}
+			<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
+				<h2 class="mb-1 text-sm font-bold tracking-wider text-white/50 uppercase">Install App</h2>
+				<p class="text-sm text-white/50">
+					On iOS Safari: tap the <strong class="text-white/70">Share</strong> button, then
+					<strong class="text-white/70">Add to Home Screen</strong>. This is required for push
+					notifications on iPhone.
+				</p>
+			</section>
+		{/if}
+
+		<!-- Notifications -->
+		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
+			<h2 class="mb-3 text-sm font-bold tracking-wider text-white/50 uppercase">Notifications</h2>
+			{#if notifStatus === 'unsupported'}
+				<p class="text-sm text-white/40">Push notifications are not supported in this browser.</p>
+			{:else if notifStatus === 'denied'}
+				<p class="text-sm text-yellow-400/80">Notifications are blocked. Open your browser/OS settings to re-enable them, then come back here.</p>
+			{:else if notifStatus === 'subscribed'}
+				<p class="mb-3 text-sm text-emerald-400">✓ Daily reminders are enabled on this device.</p>
+				<button
+					onclick={disableNotifications}
+					disabled={notifLoading}
+					class="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-semibold text-white/60 transition hover:bg-white/10 disabled:opacity-50"
+				>
+					{notifLoading ? 'Disabling…' : 'Disable notifications'}
+				</button>
+			{:else}
+				<p class="mb-3 text-sm text-white/60">Get a daily reminder if you haven't checked in yet.</p>
+				{#if !isStandalone}
+					<p class="mb-3 rounded-xl bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
+						On iPhone, you must add the app to your Home Screen first before enabling notifications.
+					</p>
+				{/if}
+				<button
+					onclick={enableNotifications}
+					disabled={notifLoading}
+					class="w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
+				>
+					{notifLoading ? 'Enabling…' : 'Enable daily reminders'}
+				</button>
+			{/if}
+			{#if notifError}<p class="mt-2 text-xs text-red-300">{notifError}</p>{/if}
 		</section>
 
 		<!-- Logout -->

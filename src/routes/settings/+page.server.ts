@@ -7,12 +7,16 @@ import { getConfig, getConfigBool, getConfigInt, CONFIG_KEYS } from '$lib/server
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.authenticated) throw redirect(303, '/');
 
-	const [appName, sessionHours, lockOnClose, pinLength, trackers] = await Promise.all([
+	const [appName, sessionHours, lockOnClose, pinLength, trackers, vapidPublicKey, vapidSubject, vapidPrivateKeySet, cronSecretSet] = await Promise.all([
 		getConfig(CONFIG_KEYS.APP_NAME),
 		getConfigInt(CONFIG_KEYS.SESSION_DURATION_HOURS, 24),
 		getConfigBool(CONFIG_KEYS.LOCK_ON_CLOSE),
 		getConfigInt(CONFIG_KEYS.PIN_LENGTH, 4),
-		prisma.rotationTracker.findMany({ orderBy: { createdAt: 'asc' } })
+		prisma.rotationTracker.findMany({ orderBy: { createdAt: 'asc' } }),
+		getConfig(CONFIG_KEYS.VAPID_PUBLIC_KEY),
+		getConfig(CONFIG_KEYS.VAPID_SUBJECT),
+		getConfig(CONFIG_KEYS.VAPID_PRIVATE_KEY).then(Boolean),
+		getConfig(CONFIG_KEYS.CRON_SECRET).then(Boolean)
 	]);
 
 	return {
@@ -30,6 +34,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			startPhase: t.startPhase,
 			isActive: t.isActive,
 			color: t.color
-		}))
+		})),
+		vapidPublicKey: vapidPublicKey ?? '',
+		vapidSubject: vapidSubject ?? '',
+		vapidPrivateKeySet,
+		cronSecretSet
 	};
 };
