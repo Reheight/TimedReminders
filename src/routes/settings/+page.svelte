@@ -256,7 +256,9 @@
 	}
 
 	// ── Notifications / PWA ──────────────────────────────────────────────────────
-	let notifStatus = $state<'unknown' | 'unsupported' | 'denied' | 'granted' | 'subscribed'>('unknown');
+	let notifStatus = $state<'unknown' | 'unsupported' | 'denied' | 'granted' | 'subscribed'>(
+		'unknown'
+	);
 	let notifLoading = $state(false);
 	let notifError = $state('');
 	let deferredInstallPrompt = $state<Event | null>(null);
@@ -748,13 +750,20 @@
 
 		<!-- Push notification config -->
 		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
-			<h2 class="mb-4 text-sm font-bold tracking-wider text-white/50 uppercase">Push Notification Config</h2>
+			<h2 class="mb-4 text-sm font-bold tracking-wider text-white/50 uppercase">
+				Push Notification Config
+			</h2>
 			<p class="mb-4 text-xs text-white/40">
-				Generate VAPID keys with: <code class="rounded bg-white/10 px-1.5 py-0.5 text-white/60">node -e "const wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()))"</code>
+				Generate VAPID keys with: <code class="rounded bg-white/10 px-1.5 py-0.5 text-white/60"
+					>node -e "const
+					wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()))"</code
+				>
 			</p>
 			<div class="space-y-3">
 				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushSubject">VAPID Subject (mailto: or https:)</label>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushSubject"
+						>VAPID Subject (mailto: or https:)</label
+					>
 					<input
 						id="pushSubject"
 						type="text"
@@ -764,7 +773,9 @@
 					/>
 				</div>
 				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPublicKey">VAPID Public Key</label>
+					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPublicKey"
+						>VAPID Public Key</label
+					>
 					<input
 						id="pushPublicKey"
 						type="text"
@@ -775,7 +786,9 @@
 				</div>
 				<div>
 					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPrivateKey">
-						VAPID Private Key {data.vapidPrivateKeySet ? '(currently set — leave blank to keep)' : ''}
+						VAPID Private Key {data.vapidPrivateKeySet
+							? '(currently set — leave blank to keep)'
+							: ''}
 					</label>
 					<input
 						id="pushPrivateKey"
@@ -795,10 +808,17 @@
 						type="password"
 						autocomplete="off"
 						bind:value={pushCronSecret}
-						placeholder={data.cronSecretSet ? '●●●●●●●● (configured)' : 'Set a secret for your cron job'}
+						placeholder={data.cronSecretSet
+							? '●●●●●●●● (configured)'
+							: 'Set a secret for your cron job'}
 						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
 					/>
-					<p class="mt-1 text-xs text-white/30">Cron job must send: <code class="text-white/50">Authorization: Bearer &lt;secret&gt;</code> to <code class="text-white/50">POST /api/push/notify</code></p>
+					<p class="mt-1 text-xs text-white/30">
+						Cron job must send: <code class="text-white/50"
+							>Authorization: Bearer &lt;secret&gt;</code
+						>
+						to <code class="text-white/50">POST /api/push/notify</code>
+					</p>
 				</div>
 			</div>
 			{#if pushError}<p class="mt-2 text-xs text-red-300">{pushError}</p>{/if}
@@ -815,7 +835,9 @@
 		{#if showInstallBanner && !isStandalone}
 			<section class="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-5">
 				<h2 class="mb-1 text-sm font-bold tracking-wider text-white/50 uppercase">Install App</h2>
-				<p class="mb-4 text-sm text-white/60">Add to your home screen for the best experience and to enable push notifications.</p>
+				<p class="mb-4 text-sm text-white/60">
+					Add to your home screen for the best experience and to enable push notifications.
+				</p>
 				<button
 					onclick={triggerInstall}
 					class="w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95"
@@ -840,7 +862,10 @@
 			{#if notifStatus === 'unsupported'}
 				<p class="text-sm text-white/40">Push notifications are not supported in this browser.</p>
 			{:else if notifStatus === 'denied'}
-				<p class="text-sm text-yellow-400/80">Notifications are blocked. Open your browser/OS settings to re-enable them, then come back here.</p>
+				<p class="text-sm text-yellow-400/80">
+					Notifications are blocked. Open your browser/OS settings to re-enable them, then come back
+					here.
+				</p>
 			{:else if notifStatus === 'subscribed'}
 				<p class="mb-3 text-sm text-emerald-400">✓ Daily reminders are enabled on this device.</p>
 				<button
@@ -851,7 +876,9 @@
 					{notifLoading ? 'Disabling…' : 'Disable notifications'}
 				</button>
 			{:else}
-				<p class="mb-3 text-sm text-white/60">Get a daily reminder if you haven't checked in yet.</p>
+				<p class="mb-3 text-sm text-white/60">
+					Get a daily reminder if you haven't checked in yet.
+				</p>
 				{#if !isStandalone}
 					<p class="mb-3 rounded-xl bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
 						On iPhone, you must add the app to your Home Screen first before enabling notifications.

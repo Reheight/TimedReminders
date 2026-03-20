@@ -73,18 +73,28 @@ export async function setConfig(
 
 export async function applyDefaults(): Promise<void> {
 	const defaults: Array<Parameters<typeof setConfig>> = [
-		[CONFIG_KEYS.PIN_LENGTH, '4', { displayName: 'PIN Length', valueType: 'NUMBER', scope: 'SECURITY' }],
+		[
+			CONFIG_KEYS.PIN_LENGTH,
+			'4',
+			{ displayName: 'PIN Length', valueType: 'NUMBER', scope: 'SECURITY' }
+		],
 		[CONFIG_KEYS.APP_NAME, 'Rotation Tracker', { displayName: 'App Name', valueType: 'STRING' }],
 		[
 			CONFIG_KEYS.SESSION_DURATION_HOURS,
 			'24',
 			{ displayName: 'Session Duration (hours)', valueType: 'NUMBER', scope: 'SECURITY' }
 		],
-		[CONFIG_KEYS.LOCK_ON_CLOSE, 'false', { displayName: 'Lock on Browser Close', valueType: 'BOOLEAN', scope: 'SECURITY' }]
+		[
+			CONFIG_KEYS.LOCK_ON_CLOSE,
+			'false',
+			{ displayName: 'Lock on Browser Close', valueType: 'BOOLEAN', scope: 'SECURITY' }
+		]
 	];
 
 	for (const args of defaults) {
-		const existing = await prisma.internalConfigurationValue.findUnique({ where: { key: args[0] } });
+		const existing = await prisma.internalConfigurationValue.findUnique({
+			where: { key: args[0] }
+		});
 		if (!existing) {
 			await setConfig(...args);
 		}

@@ -7,7 +7,17 @@ import { getConfig, getConfigBool, getConfigInt, CONFIG_KEYS } from '$lib/server
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.authenticated) throw redirect(303, '/');
 
-	const [appName, sessionHours, lockOnClose, pinLength, trackers, vapidPublicKey, vapidSubject, vapidPrivateKeySet, cronSecretSet] = await Promise.all([
+	const [
+		appName,
+		sessionHours,
+		lockOnClose,
+		pinLength,
+		trackers,
+		vapidPublicKey,
+		vapidSubject,
+		vapidPrivateKeySet,
+		cronSecretSet
+	] = await Promise.all([
 		getConfig(CONFIG_KEYS.APP_NAME),
 		getConfigInt(CONFIG_KEYS.SESSION_DURATION_HOURS, 24),
 		getConfigBool(CONFIG_KEYS.LOCK_ON_CLOSE),

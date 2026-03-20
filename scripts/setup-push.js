@@ -12,17 +12,48 @@ const keys = webpush.generateVAPIDKeys();
 const cronSecret = crypto.randomBytes(32).toString('hex');
 
 const entries = [
-	{ key: 'push.vapidPublicKey',  value: keys.publicKey,  displayName: 'VAPID Public Key',  valueType: 'STRING', scope: 'SECURITY' },
-	{ key: 'push.vapidPrivateKey', value: keys.privateKey, displayName: 'VAPID Private Key', valueType: 'SECRET', scope: 'SECURITY' },
-	{ key: 'push.vapidSubject',    value: 'mailto:support@rustworks.org', displayName: 'VAPID Subject', valueType: 'STRING', scope: 'SECURITY' },
-	{ key: 'push.cronSecret',      value: cronSecret,      displayName: 'Cron Secret',        valueType: 'SECRET', scope: 'SECURITY' },
+	{
+		key: 'push.vapidPublicKey',
+		value: keys.publicKey,
+		displayName: 'VAPID Public Key',
+		valueType: 'STRING',
+		scope: 'SECURITY'
+	},
+	{
+		key: 'push.vapidPrivateKey',
+		value: keys.privateKey,
+		displayName: 'VAPID Private Key',
+		valueType: 'SECRET',
+		scope: 'SECURITY'
+	},
+	{
+		key: 'push.vapidSubject',
+		value: 'mailto:support@rustworks.org',
+		displayName: 'VAPID Subject',
+		valueType: 'STRING',
+		scope: 'SECURITY'
+	},
+	{
+		key: 'push.cronSecret',
+		value: cronSecret,
+		displayName: 'Cron Secret',
+		valueType: 'SECRET',
+		scope: 'SECURITY'
+	}
 ];
 
 for (const e of entries) {
 	await prisma.internalConfigurationValue.upsert({
 		where: { key: e.key },
-		create: { key: e.key, value: e.value, displayName: e.displayName, valueType: e.valueType, scope: e.scope, adminOnly: true },
-		update: { value: e.value },
+		create: {
+			key: e.key,
+			value: e.value,
+			displayName: e.displayName,
+			valueType: e.valueType,
+			scope: e.scope,
+			adminOnly: true
+		},
+		update: { value: e.value }
 	});
 	console.log(`✓ ${e.displayName} saved`);
 }
