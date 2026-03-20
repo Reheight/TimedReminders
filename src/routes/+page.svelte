@@ -12,7 +12,7 @@
 	}
 </script>
 
-<div class="min-h-screen bg-linear-to-br from-slate-950 via-violet-950 to-fuchsia-950">
+<div class="safe-bottom min-h-screen bg-linear-to-br from-slate-950 via-violet-950 to-fuchsia-950">
 	<!-- Nav bar -->
 	<header class="sticky top-0 z-10 border-b border-white/8 bg-black/30 backdrop-blur">
 		<div class="mx-auto flex max-w-lg items-center justify-between px-4 py-4">
