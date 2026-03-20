@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-
-	let { data } = $props();
 
 	const COLORS = [
 		'#8B5CF6',
@@ -21,7 +18,12 @@
 	let onWeeks = $state(3);
 	let offWeeks = $state(3);
 	let startPhase = $state<'ON' | 'OFF'>('ON');
-	let startDate = $state(untrack(() => data.todayISO));
+	let startDate = $state(
+		(() => {
+			const d = new Date();
+			return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+		})()
+	);
 	let color = $state('#8B5CF6');
 	let saving = $state(false);
 	let error = $state('');

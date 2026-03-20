@@ -5,7 +5,8 @@ import {
 	calculatePhases,
 	enrichPhasesWithData,
 	computeTrackerStats,
-	getCurrentPhase
+	getCurrentPhase,
+	localTodayMidnightUTC
 } from '$lib/server/rotation.js';
 
 export const load: PageServerLoad = async ({ locals, depends }) => {
@@ -19,10 +20,12 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 		orderBy: { createdAt: 'asc' }
 	});
 
+	const today = localTodayMidnightUTC();
+
 	const enriched = await Promise.all(
 		trackers.map(async (t: RotationTracker) => {
-			const phases = calculatePhases(t);
-			const phasesWithData = await enrichPhasesWithData(t.id, phases);
+			const phases = calculatePhases(t, today);
+			const phasesWithData = await enrichPhasesWithData(t.id, phases, today);
 			const stats = await computeTrackerStats(t.id, phasesWithData);
 			const currentPhase = getCurrentPhase(t);
 

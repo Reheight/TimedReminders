@@ -2,15 +2,37 @@
 	import ProgressRing from '$lib/components/ProgressRing.svelte';
 	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
 	const tracker = $derived(data.tracker);
 	const stats = $derived(data.stats);
-	const todayISO = $derived(data.todayISO);
 	const phases = $derived(data.phases);
 
-	const currentPhase = $derived(phases.find((p) => p.isCurrent));
+	// Use server value as SSR fallback; overridden client-side on mount
+	let todayISO = $state(data.todayISO);
+	onMount(() => {
+		const d = new Date();
+		todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	});
+
+	const currentPhaseBase = $derived(phases.find((p) => p.isCurrent));
+	// Re-derive day counts and check-in status using the client's local todayISO
+	const currentPhase = $derived.by(() => {
+		if (!currentPhaseBase) return currentPhaseBase;
+		const phaseStart = new Date(currentPhaseBase.startDate.slice(0, 10) + 'T00:00:00Z');
+		const todayDate = new Date(todayISO + 'T00:00:00Z');
+		const diff = Math.round((todayDate.getTime() - phaseStart.getTime()) / 86_400_000);
+		const dayInPhase = Math.max(1, diff + 1);
+		return {
+			...currentPhaseBase,
+			dayInPhase,
+			daysRemaining: currentPhaseBase.totalDays - dayInPhase,
+			progressPercent: Math.round((dayInPhase / currentPhaseBase.totalDays) * 100),
+			hasCheckedInToday: currentPhaseBase.checkInDates.includes(todayISO)
+		};
+	});
 	const pastPhases = $derived([...phases].filter((p) => p.isPast).reverse());
 
 	async function toggleCheckin(phaseIndex: number, date: string) {

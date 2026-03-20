@@ -6,7 +6,8 @@ import {
 	calculatePhases,
 	enrichPhasesWithData,
 	computeTrackerStats,
-	toMidnightUTC
+	toMidnightUTC,
+	localTodayMidnightUTC
 } from '$lib/server/rotation.js';
 
 export const load: PageServerLoad = async ({ locals, params, depends }) => {
@@ -16,11 +17,10 @@ export const load: PageServerLoad = async ({ locals, params, depends }) => {
 	const tracker = await prisma.rotationTracker.findUnique({ where: { id: params.id } });
 	if (!tracker) throw error(404, 'Tracker not found');
 
-	const phases = calculatePhases(tracker);
-	const phasesWithData = await enrichPhasesWithData(tracker.id, phases);
+	const today = localTodayMidnightUTC();
+	const phases = calculatePhases(tracker, today);
+	const phasesWithData = await enrichPhasesWithData(tracker.id, phases, today);
 	const stats = await computeTrackerStats(tracker.id, phasesWithData);
-
-	const today = toMidnightUTC(new Date());
 
 	return {
 		tracker: {

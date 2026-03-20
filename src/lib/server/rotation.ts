@@ -36,8 +36,18 @@ export type TrackerStats = {
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
-/** Return midnight UTC for a given date, interpreted in local time */
+/** Return midnight UTC for a given date, using UTC date components (correct for stored dates). */
 export function toMidnightUTC(d: Date): Date {
+	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/**
+ * Today as midnight UTC, derived from the server's LOCAL wall-clock date.
+ * Use this instead of `toMidnightUTC(new Date())` so the date reflects the
+ * local calendar day even when the server runs in UTC.
+ */
+export function localTodayMidnightUTC(): Date {
+	const d = new Date();
 	return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
@@ -172,9 +182,10 @@ export async function getOrCreateCycleRecord(
  */
 export async function enrichPhasesWithData(
 	trackerId: string,
-	phases: CalculatedPhase[]
+	phases: CalculatedPhase[],
+	todayDate?: Date
 ): Promise<PhaseWithData[]> {
-	const today = toMidnightUTC(new Date());
+	const today = todayDate ?? localTodayMidnightUTC();
 
 	// Load all DB cycles for this tracker
 	const dbCycles = (await prisma.rotationCycle.findMany({
