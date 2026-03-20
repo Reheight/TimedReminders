@@ -1,12 +1,13 @@
 import type { PageServerLoad } from './$types';
-import type { RotationTracker } from '@prisma/client';
+import type { RotationTracker, CycleCheckIn } from '@prisma/client';
 import { prisma } from '$lib/server/prisma.js';
 import {
 	calculatePhases,
 	enrichPhasesWithData,
 	computeTrackerStats,
 	getCurrentPhase,
-	localTodayMidnightUTC
+	localTodayMidnightUTC,
+	toMidnightUTC
 } from '$lib/server/rotation.js';
 
 export const load: PageServerLoad = async ({ locals, depends }) => {
@@ -54,7 +55,10 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 							endDate: currentWithData.endDate.toISOString(),
 							checkInCount: currentWithData.checkInCount,
 							completionPercent: currentWithData.completionPercent,
-							hasCheckedInToday: currentWithData.hasCheckedInToday
+							hasCheckedInToday: currentWithData.hasCheckedInToday,
+							checkInDates: (currentWithData.dbRecord?.checkIns ?? []).map(
+								(ci: CycleCheckIn) => toMidnightUTC(new Date(ci.date)).toISOString().slice(0, 10)
+							)
 						}
 					: null,
 				stats
