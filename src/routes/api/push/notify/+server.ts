@@ -2,17 +2,21 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { prisma } from '$lib/server/prisma.js';
 import { sendPush } from '$lib/server/push.js';
-import { getConfig, CONFIG_KEYS } from '$lib/server/config.js';
+import { getConfig, getConfigInt, CONFIG_KEYS } from '$lib/server/config.js';
 import { calculatePhases, localTodayMidnightUTC } from '$lib/server/rotation.js';
 
 /**
  * POST /api/push/notify
  *
- * Intended to be called by an external cron job once per day.
- * Secured with CRON_SECRET stored in app config (Settings → Push Notifications).
- * Pass: Authorization: Bearer <secret>
+ * Designed to be called frequently (every minute or second) by a cron job.
+ * - Checks whether the current local hour matches the configured notify hour.
+ * - Uses an atomic DB INSERT on PushNotificationLog as an optimistic lock so
+ *   only one call per day ever sends, even under concurrent/repeated hits.
+ * - Secured with CRON_SECRET stored in app config (Settings → Push Notifications).
+ *   Pass: Authorization: Bearer <secret>
  */
 export const POST: RequestHandler = async ({ request }) => {
+	// ── Auth ────────────────────────────────────────────────────────────────────
 	const secret = await getConfig(CONFIG_KEYS.CRON_SECRET);
 	if (secret) {
 		const authHeader = request.headers.get('authorization');
@@ -21,20 +25,35 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	}
 
+	// ── Time window check ───────────────────────────────────────────────────────
+	const notifyHour = await getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9);
+	const now = new Date();
+	const currentHour = now.getUTCHours();
+	if (currentHour !== notifyHour) {
+		return json({ skipped: 'outside notification window' });
+	}
+
+	// ── Optimistic lock via unique INSERT ───────────────────────────────────────
+	// localTodayMidnightUTC uses local wall-clock date, same as getHours() above
 	const today = localTodayMidnightUTC();
 	const todayStr = today.toISOString().slice(0, 10);
 
-	// Get all active trackers
+	try {
+		await prisma.pushNotificationLog.create({ data: { date: todayStr } });
+	} catch {
+		// Unique constraint violation = another process already claimed today
+		return json({ skipped: 'already sent today' });
+	}
+
+	// ── Find trackers that need a reminder ───────────────────────────────────────
 	const trackers = await prisma.rotationTracker.findMany({ where: { isActive: true } });
 
-	// Find trackers that are in an ON phase today but not yet checked in
 	const needsCheckin: string[] = [];
 	for (const tracker of trackers) {
 		const phases = calculatePhases(tracker, today);
 		const current = phases.find((p) => p.isCurrent);
 		if (!current || current.phase !== 'ON') continue;
 
-		// Check if already checked in today
 		const cycle = await prisma.rotationCycle.findUnique({
 			where: { trackerId_phaseIndex: { trackerId: tracker.id, phaseIndex: current.phaseIndex } },
 			include: { checkIns: { where: { date: today } } }
@@ -46,6 +65,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	if (needsCheckin.length === 0) {
+		// Update log record to reflect nothing needed sending
+		await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
 		return json({ sent: 0, message: 'All checked in already' });
 	}
 
@@ -54,9 +75,12 @@ export const POST: RequestHandler = async ({ request }) => {
 			? `Don't forget to check in for ${needsCheckin[0]} today!`
 			: `Don't forget your check-ins today: ${needsCheckin.join(', ')}`;
 
-	// Get all push subscriptions
+	// ── Send to all subscriptions ────────────────────────────────────────────────
 	const subscriptions = await prisma.pushSubscription.findMany();
-	if (subscriptions.length === 0) return json({ sent: 0, message: 'No subscriptions' });
+	if (subscriptions.length === 0) {
+		await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
+		return json({ sent: 0, message: 'No subscriptions' });
+	}
 
 	const expiredIds: string[] = [];
 	let sent = 0;
@@ -77,6 +101,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		})
 	);
 
+	// Update log with actual send count
+	await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: sent } });
+
 	// Clean up expired subscriptions
 	if (expiredIds.length > 0) {
 		await prisma.pushSubscription.deleteMany({ where: { id: { in: expiredIds } } });
@@ -84,3 +111,4 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	return json({ sent, expired: expiredIds.length });
 };
+

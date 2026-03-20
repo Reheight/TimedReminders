@@ -215,43 +215,48 @@
 
 	const curPinDisplay = $derived(pinStep === 'set' ? newPin : confirmPin);
 
-	// ── Push notification config ────────────────────────────────────────────────
-	let pushPublicKey = $state(untrack(() => data.vapidPublicKey));
-	let pushPrivateKey = $state('');
-	let pushSubject = $state(untrack(() => data.vapidSubject));
-	let pushCronSecret = $state('');
-	let savingPush = $state(false);
-	let pushSaved = $state(false);
-	let pushError = $state('');
+	// ── Notification time ────────────────────────────────────────────────────────
+	// data.notifyHour is stored as UTC; convert to local for display
+	let pushNotifyHour = $state(untrack(() => {
+		if (typeof window === 'undefined') return data.notifyHour ?? 9;
+		const utcHour = data.notifyHour ?? 9;
+		const offsetHours = new Date().getTimezoneOffset() / 60;
+		return ((utcHour - offsetHours) % 24 + 24) % 24;
+	}));
+	let savingNotifyHour = $state(false);
+	let notifyHourSaved = $state(false);
+	let notifyHourError = $state('');
 
-	async function savePushSettings() {
-		pushError = '';
-		savingPush = true;
-		pushSaved = false;
+	const HOURS = Array.from({ length: 24 }, (_, h) => {
+		const suffix = h < 12 ? 'AM' : 'PM';
+		const display = h === 0 ? '12' : h <= 12 ? String(h) : String(h - 12);
+		return { value: h, label: `${display}:00 ${suffix}` };
+	});
+
+	async function saveNotifyHour() {
+		notifyHourError = '';
+		savingNotifyHour = true;
+		notifyHourSaved = false;
 		try {
+			// Convert the user's selected local hour to UTC before storing
+			const offsetHours = new Date().getTimezoneOffset() / 60;
+			const utcHour = ((pushNotifyHour + offsetHours) % 24 + 24) % 24;
 			const res = await fetch('/api/config', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					vapidPublicKey: pushPublicKey,
-					vapidPrivateKey: pushPrivateKey || undefined,
-					vapidSubject: pushSubject,
-					cronSecret: pushCronSecret || undefined
-				})
+				body: JSON.stringify({ notifyHour: utcHour })
 			});
 			if (res.ok) {
-				pushSaved = true;
-				pushPrivateKey = '';
-				pushCronSecret = '';
-				setTimeout(() => (pushSaved = false), 2500);
+				notifyHourSaved = true;
+				setTimeout(() => (notifyHourSaved = false), 2500);
 			} else {
 				const d = await res.json();
-				pushError = d.error ?? 'Failed to save.';
+				notifyHourError = d.error ?? 'Failed to save.';
 			}
 		} catch {
-			pushError = 'Network error.';
+			notifyHourError = 'Network error.';
 		} finally {
-			savingPush = false;
+			savingNotifyHour = false;
 		}
 	}
 
@@ -748,89 +753,6 @@
 			{/if}
 		</section>
 
-		<!-- Push notification config -->
-		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
-			<h2 class="mb-4 text-sm font-bold tracking-wider text-white/50 uppercase">
-				Push Notification Config
-			</h2>
-			<p class="mb-4 text-xs text-white/40">
-				Generate VAPID keys with: <code class="rounded bg-white/10 px-1.5 py-0.5 text-white/60"
-					>node -e "const
-					wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()))"</code
-				>
-			</p>
-			<div class="space-y-3">
-				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushSubject"
-						>VAPID Subject (mailto: or https:)</label
-					>
-					<input
-						id="pushSubject"
-						type="text"
-						bind:value={pushSubject}
-						placeholder="mailto:you@example.com"
-						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPublicKey"
-						>VAPID Public Key</label
-					>
-					<input
-						id="pushPublicKey"
-						type="text"
-						bind:value={pushPublicKey}
-						placeholder="Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/20 focus:border-fuchsia-400 focus:outline-none"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="pushPrivateKey">
-						VAPID Private Key {data.vapidPrivateKeySet
-							? '(currently set — leave blank to keep)'
-							: ''}
-					</label>
-					<input
-						id="pushPrivateKey"
-						type="password"
-						autocomplete="off"
-						bind:value={pushPrivateKey}
-						placeholder={data.vapidPrivateKeySet ? '●●●●●●●● (configured)' : 'Enter private key'}
-						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-semibold text-white/70" for="cronSecret">
-						Cron Secret {data.cronSecretSet ? '(currently set — leave blank to keep)' : ''}
-					</label>
-					<input
-						id="cronSecret"
-						type="password"
-						autocomplete="off"
-						bind:value={pushCronSecret}
-						placeholder={data.cronSecretSet
-							? '●●●●●●●● (configured)'
-							: 'Set a secret for your cron job'}
-						class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 font-mono text-xs text-white placeholder-white/30 focus:border-fuchsia-400 focus:outline-none"
-					/>
-					<p class="mt-1 text-xs text-white/30">
-						Cron job must send: <code class="text-white/50"
-							>Authorization: Bearer &lt;secret&gt;</code
-						>
-						to <code class="text-white/50">POST /api/push/notify</code>
-					</p>
-				</div>
-			</div>
-			{#if pushError}<p class="mt-2 text-xs text-red-300">{pushError}</p>{/if}
-			<button
-				onclick={savePushSettings}
-				disabled={savingPush}
-				class="mt-4 w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
-			>
-				{savingPush ? 'Saving…' : pushSaved ? '✓ Saved' : 'Save push settings'}
-			</button>
-		</section>
-
 		<!-- Install to home screen -->
 		{#if showInstallBanner && !isStandalone}
 			<section class="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-5">
@@ -859,6 +781,30 @@
 		<!-- Notifications -->
 		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
 			<h2 class="mb-3 text-sm font-bold tracking-wider text-white/50 uppercase">Notifications</h2>
+			<div class="mb-4">
+				<label class="mb-1 block text-xs font-semibold text-white/70" for="notifyHour"
+					>Reminder time</label
+				>
+				<div class="flex gap-2">
+					<select
+						id="notifyHour"
+						bind:value={pushNotifyHour}
+						class="flex-1 rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white scheme-dark focus:border-fuchsia-400 focus:outline-none"
+					>
+						{#each HOURS as h (h.value)}
+							<option value={h.value}>{h.label}</option>
+						{/each}
+					</select>
+					<button
+						onclick={saveNotifyHour}
+						disabled={savingNotifyHour}
+						class="rounded-xl bg-fuchsia-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
+					>
+						{savingNotifyHour ? '…' : notifyHourSaved ? '✓' : 'Save'}
+					</button>
+				</div>
+				{#if notifyHourError}<p class="mt-1 text-xs text-red-300">{notifyHourError}</p>{/if}
+			</div>
 			{#if notifStatus === 'unsupported'}
 				<p class="text-sm text-white/40">Push notifications are not supported in this browser.</p>
 			{:else if notifStatus === 'denied'}

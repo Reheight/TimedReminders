@@ -13,20 +13,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		lockOnClose,
 		pinLength,
 		trackers,
-		vapidPublicKey,
-		vapidSubject,
-		vapidPrivateKeySet,
-		cronSecretSet
+		notifyHour
 	] = await Promise.all([
 		getConfig(CONFIG_KEYS.APP_NAME),
 		getConfigInt(CONFIG_KEYS.SESSION_DURATION_HOURS, 24),
 		getConfigBool(CONFIG_KEYS.LOCK_ON_CLOSE),
 		getConfigInt(CONFIG_KEYS.PIN_LENGTH, 4),
 		prisma.rotationTracker.findMany({ orderBy: { createdAt: 'asc' } }),
-		getConfig(CONFIG_KEYS.VAPID_PUBLIC_KEY),
-		getConfig(CONFIG_KEYS.VAPID_SUBJECT),
-		getConfig(CONFIG_KEYS.VAPID_PRIVATE_KEY).then(Boolean),
-		getConfig(CONFIG_KEYS.CRON_SECRET).then(Boolean)
+		getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9)
 	]);
 
 	return {
@@ -45,9 +39,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isActive: t.isActive,
 			color: t.color
 		})),
-		vapidPublicKey: vapidPublicKey ?? '',
-		vapidSubject: vapidSubject ?? '',
-		vapidPrivateKeySet,
-		cronSecretSet
+		notifyHour
 	};
 };
