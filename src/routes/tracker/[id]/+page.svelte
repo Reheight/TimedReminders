@@ -51,7 +51,10 @@
 	}
 
 	function fmt(iso: string) {
-		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric'
+		});
 	}
 	function fmtFull(iso: string) {
 		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', {
