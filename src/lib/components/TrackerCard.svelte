@@ -30,7 +30,9 @@
 
 	let checking = $state(false);
 	let _todayISO = $state(todayStr());
-	onMount(() => { _todayISO = todayStr(); });
+	onMount(() => {
+		_todayISO = todayStr();
+	});
 
 	const phase = $derived(tracker.currentPhase);
 	const isOn = $derived(phase?.phase === 'ON');
@@ -94,14 +96,16 @@
 		<!-- Phase badge -->
 		{#if phase}
 			<span
-				class="shrink-0 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider {isOn
+				class="shrink-0 rounded-full px-3 py-1 text-xs font-bold tracking-wider uppercase {isOn
 					? 'bg-emerald-500/20 text-emerald-400'
 					: 'bg-slate-500/20 text-slate-400'}"
 			>
 				{phase.phase}
 			</span>
 		{:else}
-			<span class="shrink-0 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-yellow-400">
+			<span
+				class="shrink-0 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-bold tracking-wider text-yellow-400 uppercase"
+			>
 				Not started
 			</span>
 		{/if}
@@ -118,7 +122,9 @@
 					color={isOn ? '#10b981' : '#64748b'}
 					trackColor="rgba(255,255,255,0.08)"
 				/>
-				<span class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+				<span
+					class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold text-white"
+				>
 					{pct}%
 				</span>
 			</div>
@@ -140,7 +146,9 @@
 		<!-- Progress bar -->
 		<div class="mb-4 h-2 overflow-hidden rounded-full bg-white/10">
 			<div
-				class="h-full rounded-full transition-all duration-500 {isOn ? 'bg-emerald-500' : 'bg-slate-500'}"
+				class="h-full rounded-full transition-all duration-500 {isOn
+					? 'bg-emerald-500'
+					: 'bg-slate-500'}"
 				style="width:{pct}%"
 			></div>
 		</div>
@@ -167,7 +175,9 @@
 				>
 					{#if checking}
 						<span class="inline-flex items-center gap-1.5">
-							<div class="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+							<div
+								class="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+							></div>
 							Saving…
 						</span>
 					{:else if phase.hasCheckedInToday}
