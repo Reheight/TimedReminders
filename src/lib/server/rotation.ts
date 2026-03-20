@@ -90,7 +90,8 @@ export function calculatePhases(
 			// Only include one upcoming phase for "next phase" info
 			if (
 				phases[phases.length - 1].isCurrent ||
-				(phases[phases.length - 1].isPast && phaseIndex <= totalElapsed / Math.min(onDays, offDays) + 1)
+				(phases[phases.length - 1].isPast &&
+					phaseIndex <= totalElapsed / Math.min(onDays, offDays) + 1)
 			) {
 				// include this upcoming one
 			} else {
@@ -257,7 +258,8 @@ export async function computeTrackerStats(
 	return {
 		totalOnPhases: onPhases.length,
 		completedOnPhases: completedOnPhases.length,
-		completionRate: onPhases.length > 0 ? Math.round((completedOnPhases.length / onPhases.length) * 100) : 0,
+		completionRate:
+			onPhases.length > 0 ? Math.round((completedOnPhases.length / onPhases.length) * 100) : 0,
 		currentStreak,
 		longestStreak,
 		totalCheckIns
