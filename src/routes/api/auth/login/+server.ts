@@ -18,7 +18,12 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		return json({ error: 'Invalid request body' }, { status: 400 });
 	}
 
-	if (typeof body !== 'object' || body === null || !('pin' in body) || typeof (body as Record<string, unknown>).pin !== 'string') {
+	if (
+		typeof body !== 'object' ||
+		body === null ||
+		!('pin' in body) ||
+		typeof (body as Record<string, unknown>).pin !== 'string'
+	) {
 		return json({ error: 'PIN is required' }, { status: 400 });
 	}
 
@@ -50,10 +55,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 	if (!valid) {
 		const { remaining, lockedUntil } = await recordFailedAttempt(ip);
-		return json(
-			{ error: 'Incorrect PIN', remaining, lockedUntil },
-			{ status: 401 }
-		);
+		return json({ error: 'Incorrect PIN', remaining, lockedUntil }, { status: 401 });
 	}
 
 	// Success — clear failed attempts and create session
