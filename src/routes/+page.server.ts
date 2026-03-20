@@ -8,7 +8,8 @@ import {
 	getCurrentPhase
 } from '$lib/server/rotation.js';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, depends }) => {
+	depends('app:checkins');
 	if (!locals.authenticated) {
 		return { trackers: [] };
 	}

@@ -1,20 +1,14 @@
 <script lang="ts">
 	import ProgressRing from '$lib/components/ProgressRing.svelte';
-	import { untrack } from 'svelte';
+	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { PageData } from './$types';
 
 	let { data } = $props();
-	type PhaseItem = PageData['phases'][number];
 
 	const tracker = $derived(data.tracker);
 	const stats = $derived(data.stats);
 	const todayISO = $derived(data.todayISO);
-	let phases = $state<PhaseItem[]>(untrack(() => data.phases));
-
-	$effect(() => {
-		phases = data.phases;
-	});
+	const phases = $derived(data.phases);
 
 	const currentPhase = $derived(phases.find((p) => p.isCurrent));
 	const pastPhases = $derived([...phases].filter((p) => p.isPast).reverse());
@@ -31,22 +25,7 @@
 		});
 		if (!res.ok) return;
 
-		// Update local state
-		phases = phases.map((p) => {
-			if (p.phaseIndex !== phaseIndex) return p;
-			const newDates = alreadyIn
-				? (p.checkInDates as string[]).filter((d) => d !== date)
-				: [...(p.checkInDates as string[]), date];
-			const checkInCount = newDates.length;
-			const completionPercent = Math.round((checkInCount / p.totalDays) * 100);
-			return {
-				...p,
-				checkInDates: newDates,
-				checkInCount,
-				completionPercent,
-				hasCheckedInToday: newDates.includes(todayISO)
-			};
-		});
+		await invalidate('app:checkins');
 	}
 
 	function fmt(iso: string) {

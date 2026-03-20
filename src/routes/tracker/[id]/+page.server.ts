@@ -9,7 +9,8 @@ import {
 	toMidnightUTC
 } from '$lib/server/rotation.js';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, depends }) => {
+	depends('app:checkins');
 	if (!locals.authenticated) throw redirect(303, '/');
 
 	const tracker = await prisma.rotationTracker.findUnique({ where: { id: params.id } });

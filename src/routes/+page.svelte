@@ -1,20 +1,14 @@
 <script lang="ts">
 	import TrackerCard from '$lib/components/TrackerCard.svelte';
-	import { untrack } from 'svelte';
+	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { PageData } from './$types';
 
 	let { data } = $props();
-	type TrackerItem = PageData['trackers'][number];
 
-	let trackers = $state<TrackerItem[]>(untrack(() => data.trackers));
+	const trackers = $derived(data.trackers);
 
-	async function refreshTracker(id: string) {
-		// Re-fetch a single tracker's current phase after a check-in
-		const res = await fetch(`/api/trackers/${id}`);
-		if (!res.ok) return;
-		const updated = await res.json();
-		trackers = trackers.map((t: TrackerItem) => (t.id === id ? { ...t, ...updated } : t));
+	async function onCheckin() {
+		await invalidate('app:checkins');
 	}
 </script>
 
@@ -126,7 +120,7 @@
 			<!-- Tracker grid -->
 			<div class="space-y-4">
 				{#each trackers as tracker (tracker.id)}
-					<TrackerCard {tracker} onCheckin={refreshTracker} />
+					<TrackerCard {tracker} {onCheckin} />
 				{/each}
 			</div>
 
