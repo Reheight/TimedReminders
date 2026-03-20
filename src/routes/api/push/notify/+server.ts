@@ -71,7 +71,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	if (needsCheckin.length === 0) {
-		if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
+		if (!force)
+			await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
 		return json({ sent: 0, message: 'All checked in already' });
 	}
 
@@ -83,7 +84,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	// ── Send to all subscriptions ────────────────────────────────────────────────
 	const subscriptions = await prisma.pushSubscription.findMany();
 	if (subscriptions.length === 0) {
-		if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
+		if (!force)
+			await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: 0 } });
 		return json({ sent: 0, message: 'No subscriptions' });
 	}
 
@@ -107,7 +109,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	);
 
 	// Update log with actual send count
-	if (!force) await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: sent } });
+	if (!force)
+		await prisma.pushNotificationLog.update({ where: { date: todayStr }, data: { count: sent } });
 
 	// Clean up expired subscriptions
 	if (expiredIds.length > 0) {
