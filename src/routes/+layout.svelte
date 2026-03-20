@@ -36,9 +36,7 @@
 
 		// Request permission if not yet decided
 		const permission =
-			Notification.permission === 'granted'
-				? 'granted'
-				: await Notification.requestPermission();
+			Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
 		if (permission !== 'granted') return;
 
 		// Fetch VAPID key and subscribe
