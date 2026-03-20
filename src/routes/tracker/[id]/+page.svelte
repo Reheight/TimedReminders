@@ -2,7 +2,7 @@
 	import ProgressRing from '$lib/components/ProgressRing.svelte';
 	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 
 	let { data } = $props();
 
@@ -11,7 +11,7 @@
 	const phases = $derived(data.phases);
 
 	// Use server value as SSR fallback; overridden client-side on mount
-	let todayISO = $state(data.todayISO);
+	let todayISO = $state(untrack(() => data.todayISO));
 	onMount(() => {
 		const d = new Date();
 		todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
