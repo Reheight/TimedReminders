@@ -36,9 +36,9 @@ export type TrackerStats = {
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
-/** Return midnight UTC for a given date */
+/** Return midnight UTC for a given date, interpreted in local time */
 export function toMidnightUTC(d: Date): Date {
-	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+	return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
 /** Days between two midnight-UTC dates */
@@ -206,11 +206,12 @@ export async function enrichPhasesWithData(
 		const completionPercent =
 			phase.phase === 'ON' ? Math.round((checkInCount / phase.totalDays) * 100) : 100;
 
+		const todayStr = today.toISOString().slice(0, 10);
 		const hasCheckedInToday =
 			phase.isCurrent &&
 			phase.phase === 'ON' &&
 			(dbRecord?.checkIns.some(
-				(ci: CycleCheckIn) => toMidnightUTC(new Date(ci.date)).getTime() === today.getTime()
+				(ci: CycleCheckIn) => new Date(ci.date).toISOString().slice(0, 10) === todayStr
 			) ??
 				false);
 
