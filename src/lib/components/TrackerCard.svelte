@@ -39,7 +39,9 @@
 	const isOn = $derived(phase?.phase === 'ON');
 	// Override hasCheckedInToday using the browser's local date to avoid server timezone mismatch
 	const hasCheckedInToday = $derived(
-		phase?.checkInDates ? phase.checkInDates.includes(_todayISO) : (phase?.hasCheckedInToday ?? false)
+		phase?.checkInDates
+			? phase.checkInDates.includes(_todayISO)
+			: (phase?.hasCheckedInToday ?? false)
 	);
 
 	// Recompute day counts from browser's local date so server timezone doesn't skew them
@@ -173,7 +175,7 @@
 				}}
 			>
 				<button
-				class="w-full rounded-xl py-2.5 text-sm font-semibold transition active:scale-95 disabled:opacity-50 {hasCheckedInToday
+					class="w-full rounded-xl py-2.5 text-sm font-semibold transition active:scale-95 disabled:opacity-50 {hasCheckedInToday
 						? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
 						: 'bg-emerald-500 text-white hover:bg-emerald-600'}"
 					disabled={checking}
@@ -189,7 +191,7 @@
 							></div>
 							Saving…
 						</span>
-				{:else if hasCheckedInToday}
+					{:else if hasCheckedInToday}
 						✓ Checked in today
 					{:else}
 						Check in for today

@@ -56,8 +56,8 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 							checkInCount: currentWithData.checkInCount,
 							completionPercent: currentWithData.completionPercent,
 							hasCheckedInToday: currentWithData.hasCheckedInToday,
-							checkInDates: (currentWithData.dbRecord?.checkIns ?? []).map(
-								(ci: CycleCheckIn) => toMidnightUTC(new Date(ci.date)).toISOString().slice(0, 10)
+							checkInDates: (currentWithData.dbRecord?.checkIns ?? []).map((ci: CycleCheckIn) =>
+								toMidnightUTC(new Date(ci.date)).toISOString().slice(0, 10)
 							)
 						}
 					: null,
