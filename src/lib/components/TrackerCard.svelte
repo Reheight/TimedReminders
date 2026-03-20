@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ProgressRing from './ProgressRing.svelte';
 	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
 
 	type Phase = {
 		phase: 'ON' | 'OFF';
@@ -28,10 +29,26 @@
 	let { tracker, onCheckin }: { tracker: Tracker; onCheckin?: (id: string) => void } = $props();
 
 	let checking = $state(false);
+	let _todayISO = $state(todayStr());
+	onMount(() => { _todayISO = todayStr(); });
 
 	const phase = $derived(tracker.currentPhase);
 	const isOn = $derived(phase?.phase === 'ON');
-	const pct = $derived(phase?.progressPercent ?? 0);
+
+	// Recompute day counts from browser's local date so server timezone doesn't skew them
+	const dayInPhase = $derived.by(() => {
+		if (!phase?.startDate) return phase?.dayInPhase ?? null;
+		const phaseStart = new Date(
+			typeof phase.startDate === 'string'
+				? phase.startDate.slice(0, 10) + 'T00:00:00Z'
+				: phase.startDate.toISOString().slice(0, 10) + 'T00:00:00Z'
+		);
+		const todayDate = new Date(_todayISO + 'T00:00:00Z');
+		const diff = Math.round((todayDate.getTime() - phaseStart.getTime()) / 86_400_000);
+		return Math.max(1, diff + 1);
+	});
+	const daysRemaining = $derived(phase ? phase.totalDays - (dayInPhase ?? 0) : null);
+	const pct = $derived(phase && dayInPhase ? Math.round((dayInPhase / phase.totalDays) * 100) : 0);
 
 	async function doCheckin() {
 		if (!phase || !isOn || checking) return;
@@ -107,12 +124,12 @@
 			</div>
 			<div class="min-w-0 flex-1">
 				<p class="text-sm text-white/80">
-					Day <strong class="text-white">{phase.dayInPhase}</strong> of
+					Day <strong class="text-white">{dayInPhase}</strong> of
 					<strong class="text-white">{phase.totalDays}</strong>
 				</p>
 				<p class="text-xs text-white/50">
-					{phase.daysRemaining}
-					{phase.daysRemaining === 1 ? 'day' : 'days'} remaining
+					{daysRemaining}
+					{daysRemaining === 1 ? 'day' : 'days'} remaining
 				</p>
 				<p class="mt-0.5 text-xs text-white/40">
 					{fmt(phase.startDate)} – {fmt(phase.endDate)}
