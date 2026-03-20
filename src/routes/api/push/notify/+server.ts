@@ -111,4 +111,3 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	return json({ sent, expired: expiredIds.length });
 };
-

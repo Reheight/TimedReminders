@@ -217,12 +217,14 @@
 
 	// ── Notification time ────────────────────────────────────────────────────────
 	// data.notifyHour is stored as UTC; convert to local for display
-	let pushNotifyHour = $state(untrack(() => {
-		if (typeof window === 'undefined') return data.notifyHour ?? 9;
-		const utcHour = data.notifyHour ?? 9;
-		const offsetHours = new Date().getTimezoneOffset() / 60;
-		return ((utcHour - offsetHours) % 24 + 24) % 24;
-	}));
+	let pushNotifyHour = $state(
+		untrack(() => {
+			if (typeof window === 'undefined') return data.notifyHour ?? 9;
+			const utcHour = data.notifyHour ?? 9;
+			const offsetHours = new Date().getTimezoneOffset() / 60;
+			return (((utcHour - offsetHours) % 24) + 24) % 24;
+		})
+	);
 	let savingNotifyHour = $state(false);
 	let notifyHourSaved = $state(false);
 	let notifyHourError = $state('');
@@ -240,7 +242,7 @@
 		try {
 			// Convert the user's selected local hour to UTC before storing
 			const offsetHours = new Date().getTimezoneOffset() / 60;
-			const utcHour = ((pushNotifyHour + offsetHours) % 24 + 24) % 24;
+			const utcHour = (((pushNotifyHour + offsetHours) % 24) + 24) % 24;
 			const res = await fetch('/api/config', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },

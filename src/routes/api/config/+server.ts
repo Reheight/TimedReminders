@@ -85,8 +85,13 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 
 	if (b.notifyHour !== undefined) {
 		const h = Number(b.notifyHour);
-		if (!Number.isInteger(h) || h < 0 || h > 23) return json({ error: 'Invalid notify hour' }, { status: 422 });
-		await setConfig(CONFIG_KEYS.NOTIFY_HOUR, String(h), { displayName: 'Notification Hour', valueType: 'NUMBER', scope: 'SYSTEM' });
+		if (!Number.isInteger(h) || h < 0 || h > 23)
+			return json({ error: 'Invalid notify hour' }, { status: 422 });
+		await setConfig(CONFIG_KEYS.NOTIFY_HOUR, String(h), {
+			displayName: 'Notification Hour',
+			valueType: 'NUMBER',
+			scope: 'SYSTEM'
+		});
 	}
 
 	return json({ success: true });
