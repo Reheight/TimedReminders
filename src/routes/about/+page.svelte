@@ -1,10 +1,42 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { onMount, untrack } from 'svelte';
 
 	let { data } = $props();
 
+	let todayISO = $state(untrack(() => data.todayISO ?? ''));
+	onMount(() => {
+		const d = new Date();
+		todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	});
+
+	function daysBetweenISO(a: string, b: string) {
+		return Math.round(
+			(new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86_400_000
+		);
+	}
+
+	function computeCurrent(t: (typeof data.trackers)[0]) {
+		if (!t.current) return null;
+		const diff = daysBetweenISO(t.current.startDate!, todayISO);
+		const dayInPhase = Math.max(1, diff + 1);
+		return {
+			...t.current,
+			dayInPhase,
+			daysRemaining: t.current.totalDays - dayInPhase,
+			progressPercent: Math.round((dayInPhase / t.current.totalDays) * 100)
+		};
+	}
+
+	function computeWeek(t: (typeof data.trackers)[0]) {
+		const daysSinceStart = daysBetweenISO(t.startDate!, todayISO);
+		const weekInCycle =
+			daysSinceStart < 0 ? 0 : (Math.floor(daysSinceStart / 7) % t.cycleWeeks) + 1;
+		return { weekInCycle, isEvenWeek: weekInCycle % 2 === 0 };
+	}
+
 	function fmt(iso: string) {
-		return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
+		return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', {
 			month: 'short',
 			day: 'numeric',
 			year: 'numeric'
@@ -75,6 +107,8 @@
 				<div class="space-y-4">
 					{#each data.trackers as t (t.id)}
 						{@const isOn = t.current?.phase === 'ON'}
+						{@const current = computeCurrent(t)}
+						{@const week = computeWeek(t)}
 						<div class="rounded-2xl border border-white/10 bg-white/5 p-5">
 							<!-- Tracker name + phase badge -->
 							<div class="mb-4 flex items-center justify-between gap-3">
@@ -104,27 +138,27 @@
 								<!-- Day in phase -->
 								<div class="rounded-xl bg-white/5 px-3 py-2.5 text-center">
 									<p class="text-lg font-bold text-white">
-										{t.current?.dayInPhase ?? '—'}
+										{current?.dayInPhase ?? '—'}
 									</p>
 									<p class="text-xs text-white/40">Day</p>
 								</div>
 								<!-- Days remaining -->
 								<div class="rounded-xl bg-white/5 px-3 py-2.5 text-center">
 									<p class="text-lg font-bold text-white">
-										{t.current?.daysRemaining ?? '—'}
+										{current?.daysRemaining ?? '—'}
 									</p>
 									<p class="text-xs text-white/40">Remaining</p>
 								</div>
 								<!-- Week in cycle + even/odd -->
 								<div class="rounded-xl bg-white/5 px-3 py-2.5 text-center">
 									<p class="text-lg font-bold text-white">
-										W{t.weekInCycle}
+										W{week.weekInCycle}
 										<span
-											class="text-xs font-semibold {t.isEvenWeek
+											class="text-xs font-semibold {week.isEvenWeek
 												? 'text-sky-400'
 												: 'text-violet-400'}"
 										>
-											{t.isEvenWeek ? 'E' : 'O'}
+											{week.isEvenWeek ? 'E' : 'O'}
 										</span>
 									</p>
 									<p class="text-xs text-white/40">of {t.cycleWeeks}w cycle</p>
@@ -132,23 +166,23 @@
 							</div>
 
 							<!-- Progress bar -->
-							{#if t.current}
+							{#if current}
 								<div class="mb-3">
 									<div class="mb-1 flex justify-between text-xs text-white/40">
 										<span>Phase progress</span>
-										<span>{t.current.progressPercent ?? 0}%</span>
+										<span>{current.progressPercent ?? 0}%</span>
 									</div>
 									<div class="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
 										<div
 											class="h-full rounded-full transition-all {isOn
 												? 'bg-emerald-400'
 												: 'bg-slate-400'}"
-											style="width:{t.current.progressPercent ?? 0}%"
+											style="width:{current.progressPercent ?? 0}%"
 										></div>
 									</div>
 								</div>
 								<p class="text-xs text-white/40">
-									Phase ends <span class="text-white/60">{fmt(t.current.endDate)}</span>
+									Phase ends <span class="text-white/60">{fmt(current.endDate)}</span>
 								</p>
 							{/if}
 

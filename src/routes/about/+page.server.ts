@@ -1,10 +1,10 @@
 import type { PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
-import { calculatePhases, getCurrentPhase, getNextPhase, computeTrackerStats, enrichPhasesWithData } from '$lib/server/rotation';
+import { calculatePhases, getCurrentPhase, getNextPhase, computeTrackerStats, enrichPhasesWithData, localTodayMidnightUTC } from '$lib/server/rotation';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.authenticated) {
-		return { trackers: [] };
+		return { trackers: [], todayISO: '' };
 	}
 
 	const trackers = await prisma.rotationTracker.findMany({
@@ -12,23 +12,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: { createdAt: 'asc' }
 	});
 
-	const today = new Date();
+	const today = localTodayMidnightUTC();
 	const todayISO = today.toISOString().slice(0, 10);
 
 	const enriched = await Promise.all(
 		trackers.map(async (t) => {
-			const phases = calculatePhases(t);
-			const phasesWithData = await enrichPhasesWithData(t.id, phases);
+			const phases = calculatePhases(t, today);
+			const phasesWithData = await enrichPhasesWithData(t.id, phases, today);
 			const stats = await computeTrackerStats(t.id, phasesWithData);
 			const current = getCurrentPhase(t);
 			const next = getNextPhase(t);
 
-			// Current week number in the full cycle (ON+OFF weeks combined)
+			// cycleWeeks passed to client for recomputation
 			const cycleWeeks = t.onWeeks + t.offWeeks;
-			const startMs = new Date(t.startDate).getTime();
-			const daysSinceStart = Math.floor((today.getTime() - startMs) / 86_400_000);
-			const weekInCycle = daysSinceStart < 0 ? 0 : (Math.floor(daysSinceStart / 7) % cycleWeeks) + 1;
-			const isEvenWeek = weekInCycle % 2 === 0;
 
 			return {
 				id: t.id,
@@ -39,15 +35,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 				offWeeks: t.offWeeks,
 				startDate: t.startDate.toISOString().slice(0, 10),
 				cycleWeeks,
-				weekInCycle,
-				isEvenWeek,
 				current: current
 					? {
 							phase: current.phase,
-							dayInPhase: current.dayInPhase ?? null,
-							daysRemaining: current.daysRemaining ?? null,
-							progressPercent: current.progressPercent ?? null,
 							totalDays: current.totalDays,
+							startDate: current.startDate.toISOString().slice(0, 10),
 							endDate: current.endDate.toISOString().slice(0, 10)
 					  }
 					: null,
