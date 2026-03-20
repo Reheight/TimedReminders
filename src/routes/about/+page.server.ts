@@ -1,6 +1,13 @@
 import type { PageServerLoad } from './$types';
 import { prisma } from '$lib/server/prisma';
-import { calculatePhases, getCurrentPhase, getNextPhase, computeTrackerStats, enrichPhasesWithData, localTodayMidnightUTC } from '$lib/server/rotation';
+import {
+	calculatePhases,
+	getCurrentPhase,
+	getNextPhase,
+	computeTrackerStats,
+	enrichPhasesWithData,
+	localTodayMidnightUTC
+} from '$lib/server/rotation';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.authenticated) {
@@ -41,14 +48,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 							totalDays: current.totalDays,
 							startDate: current.startDate.toISOString().slice(0, 10),
 							endDate: current.endDate.toISOString().slice(0, 10)
-					  }
+						}
 					: null,
 				next: next
 					? {
 							phase: next.phase,
 							startDate: next.startDate.toISOString().slice(0, 10),
 							totalDays: next.totalDays
-					  }
+						}
 					: null,
 				stats
 			};
