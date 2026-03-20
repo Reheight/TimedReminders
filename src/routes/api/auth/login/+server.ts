@@ -69,7 +69,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		path: '/',
 		httpOnly: true,
 		sameSite: 'strict',
-		secure: process.env.NODE_ENV === 'production',
+		secure: false,
 		// No maxAge when lockOnClose — cookie becomes a session cookie
 		...(lockOnClose ? {} : { maxAge: durationHours * 3600 })
 	});
