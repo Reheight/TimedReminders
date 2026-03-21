@@ -13,7 +13,8 @@ export const CONFIG_KEYS = {
 	VAPID_PRIVATE_KEY: 'push.vapidPrivateKey',
 	VAPID_SUBJECT: 'push.vapidSubject',
 	CRON_SECRET: 'push.cronSecret',
-	NOTIFY_HOUR: 'push.notifyHour'
+	NOTIFY_HOUR: 'push.notifyHour',
+	NOTIFY_HOURS: 'push.notifyHours'
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];

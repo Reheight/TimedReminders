@@ -215,19 +215,22 @@
 
 	const curPinDisplay = $derived(pinStep === 'set' ? newPin : confirmPin);
 
-	// ── Notification time ────────────────────────────────────────────────────────
-	// data.notifyHour is stored as UTC; convert to local for display
-	let pushNotifyHour = $state(
-		untrack(() => {
-			if (typeof window === 'undefined') return data.notifyHour ?? 9;
-			const utcHour = data.notifyHour ?? 9;
-			const offsetHours = new Date().getTimezoneOffset() / 60;
-			return (((utcHour - offsetHours) % 24) + 24) % 24;
-		})
+	// ── Notification times ────────────────────────────────────────────────────────
+	function utcToLocal(h: number): number {
+		if (typeof window === 'undefined') return h;
+		return (((h - new Date().getTimezoneOffset() / 60) % 24) + 24) % 24;
+	}
+	function localToUtc(h: number): number {
+		return (((h + new Date().getTimezoneOffset() / 60) % 24) + 24) % 24;
+	}
+
+	let notifyHours = $state<number[]>(
+		untrack(() => (data.notifyHours ?? [9]).map(utcToLocal).sort((a, b) => a - b))
 	);
-	let savingNotifyHour = $state(false);
-	let notifyHourSaved = $state(false);
-	let notifyHourError = $state('');
+	let selectedAddHour = $state(0);
+	let savingNotifyHours = $state(false);
+	let notifyHoursSaved = $state(false);
+	let notifyHoursError = $state('');
 
 	const HOURS = Array.from({ length: 24 }, (_, h) => {
 		const suffix = h < 12 ? 'AM' : 'PM';
@@ -235,30 +238,37 @@
 		return { value: h, label: `${display}:00 ${suffix}` };
 	});
 
-	async function saveNotifyHour() {
-		notifyHourError = '';
-		savingNotifyHour = true;
-		notifyHourSaved = false;
+	function addNotifyHour() {
+		if (!notifyHours.includes(selectedAddHour)) {
+			notifyHours = [...notifyHours, selectedAddHour].sort((a, b) => a - b);
+		}
+	}
+	function removeNotifyHour(h: number) {
+		if (notifyHours.length <= 1) return;
+		notifyHours = notifyHours.filter((x) => x !== h);
+	}
+
+	async function saveNotifyHours() {
+		notifyHoursError = '';
+		savingNotifyHours = true;
+		notifyHoursSaved = false;
 		try {
-			// Convert the user's selected local hour to UTC before storing
-			const offsetHours = new Date().getTimezoneOffset() / 60;
-			const utcHour = (((pushNotifyHour + offsetHours) % 24) + 24) % 24;
 			const res = await fetch('/api/config', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ notifyHour: utcHour })
+				body: JSON.stringify({ notifyHours: notifyHours.map(localToUtc) })
 			});
 			if (res.ok) {
-				notifyHourSaved = true;
-				setTimeout(() => (notifyHourSaved = false), 2500);
+				notifyHoursSaved = true;
+				setTimeout(() => (notifyHoursSaved = false), 2500);
 			} else {
 				const d = await res.json();
-				notifyHourError = d.error ?? 'Failed to save.';
+				notifyHoursError = d.error ?? 'Failed to save.';
 			}
 		} catch {
-			notifyHourError = 'Network error.';
+			notifyHoursError = 'Network error.';
 		} finally {
-			savingNotifyHour = false;
+			savingNotifyHours = false;
 		}
 	}
 
@@ -784,13 +794,40 @@
 		<section class="rounded-2xl border border-white/10 bg-white/5 p-5">
 			<h2 class="mb-3 text-sm font-bold tracking-wider text-white/50 uppercase">Notifications</h2>
 			<div class="mb-4">
-				<label class="mb-1 block text-xs font-semibold text-white/70" for="notifyHour"
-					>Reminder time</label
-				>
+				<p class="mb-2 text-xs font-semibold text-white/70">Reminder times</p>
+				<!-- Configured time chips -->
+				<div class="mb-3 flex flex-wrap gap-2">
+					{#each notifyHours as h (h)}
+						<span
+							class="flex items-center gap-1.5 rounded-lg bg-fuchsia-500/20 px-3 py-1.5 text-sm font-semibold text-fuchsia-300"
+						>
+							{HOURS[h].label}
+							<button
+								onclick={() => removeNotifyHour(h)}
+								disabled={notifyHours.length <= 1}
+								aria-label="Remove {HOURS[h].label}"
+								class="flex h-4 w-4 items-center justify-center rounded-full text-fuchsia-400 transition hover:bg-fuchsia-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-3 w-3"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</button>
+						</span>
+					{/each}
+				</div>
+				<!-- Add time row -->
 				<div class="flex gap-2">
 					<select
-						id="notifyHour"
-						bind:value={pushNotifyHour}
+						bind:value={selectedAddHour}
 						class="flex-1 rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white scheme-dark focus:border-fuchsia-400 focus:outline-none"
 					>
 						{#each HOURS as h (h.value)}
@@ -798,14 +835,21 @@
 						{/each}
 					</select>
 					<button
-						onclick={saveNotifyHour}
-						disabled={savingNotifyHour}
-						class="rounded-xl bg-fuchsia-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
+						onclick={addNotifyHour}
+						disabled={notifyHours.includes(selectedAddHour)}
+						class="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white/70 transition hover:bg-white/20 disabled:opacity-40"
 					>
-						{savingNotifyHour ? '…' : notifyHourSaved ? '✓' : 'Save'}
+						+ Add
 					</button>
 				</div>
-				{#if notifyHourError}<p class="mt-1 text-xs text-red-300">{notifyHourError}</p>{/if}
+				{#if notifyHoursError}<p class="mt-1 text-xs text-red-300">{notifyHoursError}</p>{/if}
+				<button
+					onclick={saveNotifyHours}
+					disabled={savingNotifyHours}
+					class="mt-3 w-full rounded-xl bg-fuchsia-500 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-600 active:scale-95 disabled:opacity-50"
+				>
+					{savingNotifyHours ? 'Saving…' : notifyHoursSaved ? '✓ Saved' : 'Save reminder times'}
+				</button>
 			</div>
 			{#if notifStatus === 'unsupported'}
 				<p class="text-sm text-white/40">Push notifications are not supported in this browser.</p>

@@ -113,9 +113,12 @@ model CycleCheckIn {
 // ─── Push notification log (idempotency / optimistic lock) ───────────────────
 model PushNotificationLog {
   id     String   @id @default(cuid())
-  date   String   @unique @db.VarChar(10) // YYYY-MM-DD local date
+  date   String   @db.VarChar(10) // YYYY-MM-DD
+  hour   Int      @default(0)    // UTC hour 0-23
   sentAt DateTime @default(now())
   count  Int      @default(0)
+
+  @@unique([date, hour])
 }
 
 // ─── Push notification subscriptions ─────────────────────────────────────────

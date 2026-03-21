@@ -83,13 +83,15 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		});
 	}
 
-	if (b.notifyHour !== undefined) {
-		const h = Number(b.notifyHour);
-		if (!Number.isInteger(h) || h < 0 || h > 23)
-			return json({ error: 'Invalid notify hour' }, { status: 422 });
-		await setConfig(CONFIG_KEYS.NOTIFY_HOUR, String(h), {
-			displayName: 'Notification Hour',
-			valueType: 'NUMBER',
+	if (b.notifyHours !== undefined) {
+		if (!Array.isArray(b.notifyHours)) return json({ error: 'Invalid notify hours' }, { status: 422 });
+		const hours = (b.notifyHours as unknown[]).map(Number);
+		if (hours.length === 0 || hours.some((h) => !Number.isInteger(h) || h < 0 || h > 23))
+			return json({ error: 'Each hour must be 0–23' }, { status: 422 });
+		const sorted = [...new Set(hours)].sort((a, b) => a - b);
+		await setConfig(CONFIG_KEYS.NOTIFY_HOURS, sorted.join(','), {
+			displayName: 'Notification Hours',
+			valueType: 'STRING',
 			scope: 'SYSTEM'
 		});
 	}
