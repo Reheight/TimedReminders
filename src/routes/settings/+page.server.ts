@@ -7,16 +7,23 @@ import { getConfig, getConfigBool, getConfigInt, CONFIG_KEYS } from '$lib/server
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.authenticated) throw redirect(303, '/');
 
-	const [appName, sessionHours, lockOnClose, pinLength, trackers, notifyHoursRaw, notifyHourFallback] =
-		await Promise.all([
-			getConfig(CONFIG_KEYS.APP_NAME),
-			getConfigInt(CONFIG_KEYS.SESSION_DURATION_HOURS, 24),
-			getConfigBool(CONFIG_KEYS.LOCK_ON_CLOSE),
-			getConfigInt(CONFIG_KEYS.PIN_LENGTH, 4),
-			prisma.rotationTracker.findMany({ orderBy: { createdAt: 'asc' } }),
-			getConfig(CONFIG_KEYS.NOTIFY_HOURS),
-			getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9)
-		]);
+	const [
+		appName,
+		sessionHours,
+		lockOnClose,
+		pinLength,
+		trackers,
+		notifyHoursRaw,
+		notifyHourFallback
+	] = await Promise.all([
+		getConfig(CONFIG_KEYS.APP_NAME),
+		getConfigInt(CONFIG_KEYS.SESSION_DURATION_HOURS, 24),
+		getConfigBool(CONFIG_KEYS.LOCK_ON_CLOSE),
+		getConfigInt(CONFIG_KEYS.PIN_LENGTH, 4),
+		prisma.rotationTracker.findMany({ orderBy: { createdAt: 'asc' } }),
+		getConfig(CONFIG_KEYS.NOTIFY_HOURS),
+		getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9)
+	]);
 
 	const notifyHours: number[] = notifyHoursRaw
 		? notifyHoursRaw

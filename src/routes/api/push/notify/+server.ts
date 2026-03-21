@@ -35,7 +35,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!force) {
 		const hoursRaw = await getConfig(CONFIG_KEYS.NOTIFY_HOURS);
 		const notifyHours = hoursRaw
-			? hoursRaw.split(',').map(Number).filter((n) => !isNaN(n))
+			? hoursRaw
+					.split(',')
+					.map(Number)
+					.filter((n) => !isNaN(n))
 			: [await getConfigInt(CONFIG_KEYS.NOTIFY_HOUR, 9)];
 		if (!notifyHours.includes(currentHour)) {
 			return json({ skipped: 'outside notification window' });
@@ -115,7 +118,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	// Update log with actual send count
 	if (!force)
-		await prisma.pushNotificationLog.update({ where: { date_hour: logKey }, data: { count: sent } });
+		await prisma.pushNotificationLog.update({
+			where: { date_hour: logKey },
+			data: { count: sent }
+		});
 
 	// Clean up expired subscriptions
 	if (expiredIds.length > 0) {

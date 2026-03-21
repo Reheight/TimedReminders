@@ -84,7 +84,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 	}
 
 	if (b.notifyHours !== undefined) {
-		if (!Array.isArray(b.notifyHours)) return json({ error: 'Invalid notify hours' }, { status: 422 });
+		if (!Array.isArray(b.notifyHours))
+			return json({ error: 'Invalid notify hours' }, { status: 422 });
 		const hours = (b.notifyHours as unknown[]).map(Number);
 		if (hours.length === 0 || hours.some((h) => !Number.isInteger(h) || h < 0 || h > 23))
 			return json({ error: 'Each hour must be 0–23' }, { status: 422 });
