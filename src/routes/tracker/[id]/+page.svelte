@@ -199,8 +199,50 @@
 			</p>
 		</div>
 
-		<!-- Current phase calendar (ON only) -->
-		{#if currentPhase && currentPhase.phase === 'ON'}
+		<!-- Current phase calendar -->
+		{#if currentPhase && currentPhase.phase === 'OFF'}
+			{@const dates = dateRange(
+				currentPhase.startDate.slice(0, 10),
+				currentPhase.endDate.slice(0, 10)
+			)}
+			{@const nextOnStart = (() => {
+				const ms =
+					new Date(currentPhase.endDate.slice(0, 10) + 'T00:00:00Z').getTime() + 86_400_000;
+				return new Date(ms).toISOString().slice(0, 10);
+			})()}
+			<div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+				<h2 class="mb-4 text-xs font-bold tracking-wider text-white/50 uppercase">
+					Rest period
+				</h2>
+				<div class="flex flex-wrap gap-2">
+					{#each dates as d (d)}
+						{@const isToday = d === todayISO}
+						{@const isPast = d < todayISO}
+						{@const day = new Date(d + 'T12:00:00Z')}
+						<div
+							title={day.toLocaleDateString('en-US', {
+								weekday: 'short',
+								month: 'short',
+								day: 'numeric'
+							})}
+							class="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-xs font-semibold
+								{isToday
+								? 'bg-slate-500/30 text-slate-200 ring-2 ring-slate-400'
+								: isPast
+									? 'bg-slate-500/20 text-slate-400'
+									: 'bg-white/5 text-white/20'}"
+						>
+							<span class="text-xs">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+							<span>{day.getUTCDate()}</span>
+						</div>
+					{/each}
+				</div>
+				<p class="mt-3 text-xs text-white/30">
+					{currentPhase.daysRemaining}
+					{currentPhase.daysRemaining === 1 ? 'day' : 'days'} remaining · next ON phase starts {fmt(nextOnStart)}
+				</p>
+			</div>
+		{:else if currentPhase && currentPhase.phase === 'ON'}
 			{@const dates = dateRange(
 				currentPhase.startDate.slice(0, 10),
 				currentPhase.endDate.slice(0, 10)
