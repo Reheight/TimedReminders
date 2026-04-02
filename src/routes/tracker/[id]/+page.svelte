@@ -211,9 +211,7 @@
 				return new Date(ms).toISOString().slice(0, 10);
 			})()}
 			<div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-				<h2 class="mb-4 text-xs font-bold tracking-wider text-white/50 uppercase">
-					Rest period
-				</h2>
+				<h2 class="mb-4 text-xs font-bold tracking-wider text-white/50 uppercase">Rest period</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each dates as d (d)}
 						{@const isToday = d === todayISO}
@@ -239,7 +237,9 @@
 				</div>
 				<p class="mt-3 text-xs text-white/30">
 					{currentPhase.daysRemaining}
-					{currentPhase.daysRemaining === 1 ? 'day' : 'days'} remaining · next ON phase starts {fmt(nextOnStart)}
+					{currentPhase.daysRemaining === 1 ? 'day' : 'days'} remaining · next ON phase starts {fmt(
+						nextOnStart
+					)}
 				</p>
 			</div>
 		{:else if currentPhase && currentPhase.phase === 'ON'}
